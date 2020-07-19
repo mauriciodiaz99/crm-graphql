@@ -26,6 +26,15 @@ const ClientesSchema = mongoose.Schema({
     telefono: {
         type: String,
         trim: true
+    },
+    creado: {
+        type: Date,
+        default: Date.now()
+    },
+    vendedor: {
+        type: mongoose.Schema.Types.ObjectId,
+        required: true,
+        ref: 'Usuario'
     }
 });
 

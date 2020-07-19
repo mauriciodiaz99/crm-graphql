@@ -1,5 +1,6 @@
 const Usuario = require('../models/Usuario');
 const Producto = require('../models/Producto');
+const Cliente = require('../models/Cliente');
 const bcryptjs = require('bcryptjs');
 const jwt = require('jsonwebtoken');
 require('dotenv').config({ path: 'variables.env' });
@@ -124,6 +125,14 @@ const resolvers = {
             await Producto.findOneAndDelete({_id:id});
 
             return "Producto Eliminado";
+        },
+        nuevoCliente: async(_, { input }) => {
+            //Verificar si el cliente esta registrado
+            console.log(input);
+
+            //Asignar el vendedor
+
+            //Guardarlo en la DB
         }
     }
 }
