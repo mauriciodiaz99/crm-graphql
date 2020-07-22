@@ -126,13 +126,31 @@ const resolvers = {
 
             return "Producto Eliminado";
         },
-        nuevoCliente: async(_, { input }) => {
+        nuevoCliente: async(_, { input }, ctx) => {
+
+            console.log(ctx);
             //Verificar si el cliente esta registrado
-            console.log(input);
+            //console.log(input);
+            const { email } = input;
+
+            const cliente = await Cliente.findOne({ email });
+            if (cliente) {
+                throw new Error('Ese cliente ya esta registrado!');
+            }
+
+            const nuevoCliente = new Cliente(input);
 
             //Asignar el vendedor
+            nuevoCliente.vendedor = "5f12c6103f73b10eb05a9192";
 
             //Guardarlo en la DB
+            try {
+            const resultado = await nuevoCliente.save();
+
+            return resultado;
+            } catch (error) {
+                console.log(error);
+            }
         }
     }
 }
