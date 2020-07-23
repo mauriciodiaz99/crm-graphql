@@ -66,6 +66,37 @@ const resolvers = {
                 throw new Error('No tienes las credenciales!');
             }
             return cliente;
+        },
+        obtenerPedidos: async () => {
+            try {
+                const pedidos = await Pedido.find({});
+                return pedidos;
+            } catch (error) {
+                console.log(error);
+            }
+        },
+        obtenerPedidosVendedor: async (_, {}, ctx) => {
+            try {
+                const pedidos = await Pedido.find({ vendedor: ctx.usuario.id });
+                return pedidos;
+            } catch (error) {
+                console.log(error);
+            }
+        },
+        obtenerPedido: async (_, { id }, ctx) => {
+            //Si el pedido existe o no
+            const pedido = await Pedido.findById(id);
+            if(!pedido) {
+                throw new Error('Pedido no Encontrado!');
+            }
+
+            //Solo quien lo creo puede verlo
+            if (pedido.vendedor.toString() !== ctx.usuario.id) {
+                throw new Error('No tiene las credenciales!');
+            }
+
+            //Retornar el resultado
+            return pedido;
         }
     },
     Mutation: {
@@ -255,6 +286,47 @@ const resolvers = {
 
             //Guardar en la DB
             const resultado = await nuevoPedido.save();
+            return resultado;
+        },
+        actualizarPedido: async(_, {id, input}, ctx) => {
+
+            const { cliente } = input;
+            //Si el pedido existe
+            const existePedido = await Pedido.findById(id);
+            if(!existePedido) {
+                throw new Error('El Pedido no existe!');
+            }
+
+            //Si el cliente existe
+            const existeCliente = await Cliente.findById(cliente);
+            if(!existeCliente) {
+                throw new Error('El Pedido no existe!');
+            }
+
+            //Si el cliente y pedido pertenece al vendedor
+            if(existeCliente.vendedor.toString() !== ctx.usuario.id) {
+                throw new Error('No tienes las credenciales!');
+            }
+
+            //Revisar el stock
+            for await ( const articulo of input.pedido ) {
+                const { id } = articulo;
+
+                const producto = await Producto.findById(id);
+
+                if(articulo.cantidad > producto.existencia) {
+                    throw new Error(`El articulo ${producto.nombre} excede la cantidad disponible`);
+                } else {
+                    //Restar la cantidad a lo disponible
+                    producto.existencia = producto.existencia - articulo.cantidad;
+
+                    await producto.save();
+                }
+            };
+
+
+            //Guardar en la DB
+            const resultado = await Pedido.findOneAndUpdate({_id: id}, input, {new: true});
             return resultado;
         }
     }
