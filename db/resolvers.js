@@ -97,6 +97,59 @@ const resolvers = {
 
             //Retornar el resultado
             return pedido;
+        },
+        obtenerPedidosEstado: async (_, { estado }, ctx) => {
+            const pedidos = await Pedido.find({ vendedor: ctx.usuario.id, estado });
+
+            return pedidos;
+        },
+        mejoresClientes: async () => {
+            const clientes = await Pedido.aggregate([
+                { $match: { estado: "COMPLETADO"} },
+                { $group: {
+                    _id: "$cliente",
+                    total: { $sum: '$total' }
+                }},
+                {
+                    $lookup: {
+                        from: 'clientes',
+                        localField: '_id',
+                        foreignField: "_id",
+                        as: "cliente"
+                    }
+                },
+                {
+                    $limit: 10
+                },
+                {
+                    $sort: { total: -1 }
+                }
+            ]);
+            return clientes;
+        },
+        mejoresVendedores: async () => {
+            const vendedores = await Pedido.aggregate([
+                { $match: { estado: "COMPLETADO" } },
+                { group: {
+                    _id: "$vendedor",
+                    total: { $sum: '$total' }
+                }},
+                {
+                    $lookup: {
+                        from: 'usuarios',
+                        localField: '_id',
+                        foreignField: '_id',
+                        as: 'vendedor'
+                    }
+                },
+                {
+                    $limit: 3
+                },
+                {
+                    $sort: { total: -1 }
+                }
+            ]);
+            return vendedores;
         }
     },
     Mutation: {
@@ -300,7 +353,7 @@ const resolvers = {
             //Si el cliente existe
             const existeCliente = await Cliente.findById(cliente);
             if(!existeCliente) {
-                throw new Error('El Pedido no existe!');
+                throw new Error('El cliente no existe!');
             }
 
             //Si el cliente y pedido pertenece al vendedor
@@ -309,25 +362,43 @@ const resolvers = {
             }
 
             //Revisar el stock
-            for await ( const articulo of input.pedido ) {
-                const { id } = articulo;
-
-                const producto = await Producto.findById(id);
-
-                if(articulo.cantidad > producto.existencia) {
-                    throw new Error(`El articulo ${producto.nombre} excede la cantidad disponible`);
-                } else {
-                    //Restar la cantidad a lo disponible
-                    producto.existencia = producto.existencia - articulo.cantidad;
-
-                    await producto.save();
-                }
-            };
+            if(input.pedido) {
+                for await ( const articulo of input.pedido ) {
+                    const { id } = articulo;
+    
+                    const producto = await Producto.findById(id);
+    
+                    if(articulo.cantidad > producto.existencia) {
+                        throw new Error(`El articulo ${producto.nombre} excede la cantidad disponible`);
+                    } else {
+                        //Restar la cantidad a lo disponible
+                        producto.existencia = producto.existencia - articulo.cantidad;
+    
+                        await producto.save();
+                    }
+                };
+            }
 
 
             //Guardar en la DB
             const resultado = await Pedido.findOneAndUpdate({_id: id}, input, {new: true});
             return resultado;
+        },
+        eliminarPedido: async (_, {id}, ctx) => {
+            //Si el pedido existe
+            const existePedido = await Pedido.findById(id);
+            if(!existePedido) {
+                throw new Error('El Pedido no existe!');
+            }
+
+            //Si el cliente y pedido pertenece al vendedor
+            if(existePedido.vendedor.toString() !== ctx.usuario.id) {
+                throw new Error('No tienes las credenciales!');
+            }
+
+            //Eliminar de la DB
+            await Pedido.findByIdAndDelete({_id: id});
+            return "Pedido Eliminado";
         }
     }
 }
