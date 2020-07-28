@@ -129,8 +129,8 @@ const resolvers = {
         },
         mejoresVendedores: async () => {
             const vendedores = await Pedido.aggregate([
-                { $match: { estado: "COMPLETADO" } },
-                { group: {
+                { $match: { estado: "COMPLETADO"} },
+                { $group: {
                     _id: "$vendedor",
                     total: { $sum: '$total' }
                 }},
@@ -138,8 +138,8 @@ const resolvers = {
                     $lookup: {
                         from: 'usuarios',
                         localField: '_id',
-                        foreignField: '_id',
-                        as: 'vendedor'
+                        foreignField: "_id",
+                        as: "vendedor"
                     }
                 },
                 {
@@ -150,6 +150,10 @@ const resolvers = {
                 }
             ]);
             return vendedores;
+        },
+        buscarProducto: async(_, { texto }) => {
+            const productos = await Producto.find({ $text: { $search: texto }}).limit(10)
+            return productos;
         }
     },
     Mutation: {
