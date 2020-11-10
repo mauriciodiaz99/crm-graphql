@@ -13,9 +13,11 @@
     "apollo-server": "^2.15.1",
     "bcryptjs": "^2.4.3",
     "dotenv": "^8.2.0",
+    "izitoast": "^1.4.0",
     "jsonwebtoken": "^8.5.1",
     "mongoose": "^5.9.24",
-    "simplecrypt": "^0.1.0"
+    "simplecrypt": "^0.1.0",
+    "sweetalert2": "^10.9.0"
   },
   "devDependencies": {
     "nodemon": "^2.0.4"
